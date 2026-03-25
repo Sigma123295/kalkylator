@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ШколаПлюс — столбик</title>
+  <style>
+    :root{--bg:#0b1020;--panel:#131a31;--panel2:#1a2342;--text:#eef3ff;--muted:#a9b4db;--line:#283255;--accent:#7c5cff;--good:#49d17d;--bad:#ff6b6b}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,#0d1225,#090d1a);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px}
+    .panel{background:rgba(19,26,49,.94);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:0 16px 40px rgba(0,0,0,.25)}
+    h1,h2,h3{margin:0 0 12px} p{color:var(--muted);line-height:1.6}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .btn{border:none;border-radius:14px;padding:13px 16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--accent),#5a8bff);color:#fff}
+    .btn.secondary{background:#161d36;border:1px solid var(--line)}
+    label{display:block;margin:12px 0 8px;color:#dfe5ff;font-size:14px;font-weight:700}
+    input,select{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:#0f1529;color:var(--text);font-size:16px;outline:none}
+    .result{background:#0e1427;border:1px dashed #34508f;border-radius:18px;padding:16px;white-space:pre-wrap;min-height:220px;font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.6}
+    .ok{color:var(--good)} .err{color:var(--bad)}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+    .chip{display:inline-block;padding:8px 12px;border-radius:999px;background:#1a2240;border:1px solid var(--line);font-size:13px;color:#d8e1ff;margin:0 8px 8px 0}
+    .small{font-size:13px;color:var(--muted)}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Решение в столбик</h1>
+        <p>Числа выравниваются как в тетради, а ниже показывается пошаговое решение.</p>
+      </div>
+      <div>
+        <span class="chip">Сложение</span><span class="chip">Вычитание</span><span class="chip">Умножение</span><span class="chip">Деление</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="grid">
+        <div>
+          <label>Первое число</label>
+          <input id="a" type="text" value="245">
+          <label>Второе число</label>
+          <input id="b" type="text" value="78">
+          <label>Операция</label>
+          <select id="op">
+            <option value="+">+</option>
+            <option value="-">-</option>
+            <option value="*">*</option>
+            <option value="/">/</option>
+          </select>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn" onclick="solve()">Показать столбик</button>
+            <button class="btn secondary" onclick="preset('add')">Пример сложения</button>
+            <button class="btn secondary" onclick="preset('sub')">Пример вычитания</button>
+          </div>
+          <p class="small">Для сложения и вычитания показывается именно тетрадный столбик. Для умножения и деления — аккуратный пошаговый разбор.</p>
+        </div>
+        <div>
+          <h3>Решение</h3>
+          <div id="out" class="result">Введите числа и нажмите кнопку.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function preset(type){
+      if(type==='add'){a.value='245';b.value='78';op.value='+'}
+      if(type==='sub'){a.value='245';b.value='78';op.value='-'}
+      solve();
+    }
+
+    function padLeft(str, len){ return String(str).padStart(len, ' '); }
+
+    function alignForColumn(x, y){
+      const sx = String(x), sy = String(y);
+      const width = Math.max(sx.length, sy.length) + 2;
+      return {sx: padLeft(sx, width), sy: padLeft(sy, width), width};
+    }
+
+    function solve(){
+      const xRaw = String(a.value).replace(',','.');
+      const yRaw = String(b.value).replace(',','.');
+      const opv = op.value;
+      const out = document.getElementById('out');
+      const x = Number(xRaw), y = Number(yRaw);
+      if(Number.isNaN(x) || Number.isNaN(y)){ out.innerHTML = '<span class="err">Введите корректные числа.</span>'; return; }
+
+      if(opv === '+' || opv === '-'){
+        const isInt = Number.isInteger(x) && Number.isInteger(y);
+        if(!isInt){
+          const res = opv === '+' ? x + y : x - y;
+          out.textContent = `Нужен столбик для целых чисел.\n\nОтвет: ${res}`;
+          return;
+        }
+        const width = Math.max(String(Math.abs(x)).length, String(Math.abs(y)).length) + 2;
+        const top = padLeft(x, width);
+        const bottom = padLeft(opv + y, width);
+        const line = ' '.repeat(width - 1) + '─'.repeat(Math.max(String(Math.abs(x)).length, String(Math.abs(y)).length) + 1);
+        let res = opv === '+' ? x + y : x - y;
+        const result = padLeft(res, width);
+        const steps = [];
+        if(opv === '+'){
+          steps.push('1) Складываем по разрядам справа налево.');
+          steps.push('2) Если сумма больше 9, переносим десяток.');
+        } else {
+          steps.push('1) Вычитаем по разрядам справа налево.');
+          steps.push('2) Если не хватает, занимаем десяток слева.');
+        }
+        out.textContent = `${top}\n${bottom}\n${line}\n${result}\n\n${steps.join('\n')}\n\nОтвет: ${res}`;
+        return;
+      }
+
+      if(opv === '*'){
+        const res = x * y;
+        out.textContent = `Умножение в столбик:\n\n${x} × ${y} = ${res}\n\nШаги:\n1) Умножаем число на каждый разряд второго числа.\n2) Сдвигаем промежуточные результаты.\n3) Складываем промежуточные суммы.\n\nОтвет: ${res}`;
+        return;
+      }
+
+      if(opv === '/'){
+        if(y === 0){ out.innerHTML = '<span class="err">Делить на 0 нельзя.</span>'; return; }
+        const res = x / y;
+        out.textContent = `Деление в столбик:\n\n${x} ÷ ${y} = ${res}\n\nШаги:\n1) Сколько раз число y помещается в x.\n2) Проверяем умножением.\n3) Если нужно, дописываем остаток или дробную часть.\n\nОтвет: ${res}`;
+      }
+    }
+  </script>
+</body>
+</html>
